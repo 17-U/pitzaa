@@ -39,6 +39,9 @@ cp .env.example .env
 # 3. Démarrer PostgreSQL et Redis
 docker compose up -d
 
+# 3bis. Appliquer les migrations Prisma (base de dev + base de test)
+pnpm --filter @pitzaa/api prisma:migrate:dev
+
 # 4. Lancer l'API (NestJS) — http://localhost:3000, docs Swagger sur /docs
 pnpm --filter @pitzaa/api start:dev
 
@@ -65,6 +68,9 @@ Chaque commande peut être restreinte à un seul package avec `--filter`, par ex
 
 ```bash
 pnpm --filter @pitzaa/api test
+
+# Tests end-to-end de l'API (Supertest), contre la base de données de test
+pnpm --filter @pitzaa/api test:e2e
 ```
 
 ## Tester l'API
@@ -73,11 +79,34 @@ Une fois l'API lancée (étape 4 ci-dessus) :
 
 - `GET http://localhost:3000/` → informations de base (`{ "name": "Pitzaa API", "version": "0.0.1" }`)
 - `GET http://localhost:3000/health` → sonde de santé (`{ "status": "ok", "timestamp": "..." }`)
-- `http://localhost:3000/docs` → documentation Swagger (OpenAPI)
+- `http://localhost:3000/docs` → documentation Swagger (OpenAPI), incluant les routes `/auth/*`
+- Inscription / connexion : `POST /auth/register-or-login/request-otp` puis `POST /auth/register-or-login/verify-otp` (le code OTP est loggé par le `MockSmsProvider` en développement, voir les logs de l'API)
 
-## Base de données de test
+## Base de données et Prisma
 
-`docker-compose.yml` démarre un second service PostgreSQL (`postgres-test`) dédié aux tests automatisés (API, grand livre, etc.), isolé de la base de développement. Les ports par défaut (`TEST_POSTGRES_PORT`, `REDIS_PORT`) peuvent être changés dans `.env` si un autre projet local les utilise déjà.
+`docker-compose.yml` démarre un second service PostgreSQL (`postgres-test`) dédié aux tests automatisés (API, grand livre, etc.), isolé de la base de développement. Les ports par défaut (`POSTGRES_PORT`, `TEST_POSTGRES_PORT`, `REDIS_PORT`) peuvent être changés dans `.env` si un autre projet local (ou un service PostgreSQL natif, fréquent sur Windows) les utilise déjà.
+
+Le schéma de données vit dans [apps/api/prisma/schema.prisma](apps/api/prisma/schema.prisma). Commandes utiles (depuis la racine) :
+
+```bash
+# Créer/appliquer une migration en développement (base de dev)
+pnpm --filter @pitzaa/api prisma:migrate:dev
+
+# Appliquer les migrations existantes sans en créer de nouvelle (ex: CI, prod)
+pnpm --filter @pitzaa/api prisma:migrate:deploy
+
+# Régénérer le client Prisma après un changement de schéma
+pnpm --filter @pitzaa/api prisma:generate
+
+# Explorer les données via Prisma Studio
+pnpm --filter @pitzaa/api prisma:studio
+```
+
+Ces commandes chargent automatiquement le `.env` racine (via `dotenv-cli`). Pour appliquer une migration sur la base de **test**, surchargez `DATABASE_URL` :
+
+```bash
+DATABASE_URL="$TEST_DATABASE_URL" pnpm --filter @pitzaa/api exec prisma migrate deploy
+```
 
 ## Questions ouvertes
 
@@ -85,4 +114,4 @@ Voir [QUESTIONS.md](./QUESTIONS.md) pour la liste des points qui nécessitent un
 
 ## Avancement
 
-Le projet est construit phase par phase (voir le prompt de pilotage, adapté : pas d'app mobile — tout en web dans `apps/web`). État actuel : **Phase 0 — Socle** terminée.
+Le projet est construit phase par phase (voir le prompt de pilotage, adapté : pas d'app mobile — tout en web dans `apps/web`). État actuel : **Phase 1 — Modèle de données et authentification** terminée (schéma Prisma complet, inscription/connexion par téléphone + OTP, JWT avec rotation des refresh tokens, rôles, PIN Pitzaa, export et suppression de compte).

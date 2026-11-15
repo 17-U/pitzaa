@@ -1,0 +1,806 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Locale {
+  fr
+  en
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  SUPPORT
+  SUPER_ADMIN
+}
+
+enum KycStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OtpPurpose {
+  REGISTRATION
+  LOGIN
+  WITHDRAWAL
+  PIN_RESET
+  ACCOUNT_DELETION
+}
+
+enum OAuthProviderName {
+  GOOGLE
+  APPLE
+}
+
+enum GroupVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum GroupStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  LEFT
+  REMOVED
+}
+
+enum MembershipPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  DISPUTED
+  ESCROW_RELEASED
+  REFUNDED
+}
+
+enum GiftCardListingStatus {
+  PENDING_VERIFICATION
+  LISTED
+  REJECTED
+  SOLD
+  CANCELLED
+}
+
+enum GiftCardOrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CODE_REVEALED
+  ESCROW_RELEASED
+  DISPUTED
+  REFUNDED
+}
+
+enum PaymentProviderName {
+  FAPSHI
+  KPAY
+  MOCK
+}
+
+enum PaymentDirection {
+  COLLECTION
+  PAYOUT
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+}
+
+enum PaymentPurpose {
+  MEMBERSHIP_PAYMENT
+  GIFT_CARD_PURCHASE
+  WITHDRAWAL
+  PREMIUM_SUBSCRIPTION
+}
+
+enum MobileMoneyOperator {
+  MTN_MOMO
+  ORANGE_MONEY
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+/// Comptes du grand livre en partie double. USER_AVAILABLE/USER_ESCROW sont
+/// toujours rattachés à un userId ; les autres sont des comptes plateforme.
+enum LedgerAccountType {
+  USER_AVAILABLE
+  USER_ESCROW
+  PLATFORM_COMMISSION
+  PLATFORM_ESCROW_CLEARING
+  PAYMENT_PROVIDER
+  WITHDRAWAL_CLEARING
+}
+
+enum LedgerEntryType {
+  PAYMENT_COLLECTED
+  ESCROW_HOLD
+  ESCROW_RELEASE
+  COMMISSION
+  WITHDRAWAL
+  REFUND
+  PREMIUM_FEE
+}
+
+enum LedgerTransactionType {
+  MEMBERSHIP_PAYMENT_COLLECTION
+  MEMBERSHIP_ESCROW_RELEASE
+  GIFT_CARD_PURCHASE_COLLECTION
+  GIFT_CARD_ESCROW_RELEASE
+  WITHDRAWAL
+  REFUND
+  PREMIUM_SUBSCRIPTION_FEE
+}
+
+enum DisputeRelatedEntity {
+  MEMBERSHIP_PAYMENT
+  GIFT_CARD_ORDER
+}
+
+enum DisputeStatus {
+  OPEN
+  AWAITING_RESPONSE
+  UNDER_ARBITRATION
+  RESOLVED_FOR_INITIATOR
+  RESOLVED_FOR_COUNTERPARTY
+  CANCELLED
+}
+
+enum ConversationType {
+  GROUP
+  TRANSACTION
+  DISPUTE
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  IN_APP
+  EMAIL
+}
+
+enum NotificationType {
+  PAYMENT_REMINDER
+  PAYMENT_RECEIVED
+  ESCROW_RELEASED
+  GROUP_JOIN_REQUEST
+  GROUP_JOIN_ACCEPTED
+  DISPUTE_OPENED
+  DISPUTE_RESOLVED
+  GIFT_CARD_SOLD
+  GIFT_CARD_CODE_REVEALED
+  KYC_STATUS_CHANGED
+  WITHDRAWAL_STATUS_CHANGED
+  GENERIC
+}
+
+enum PremiumStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Comptes et confiance
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  email     String?  @unique
+  firstName String?
+  lastName  String?
+  locale    Locale   @default(fr)
+  role      UserRole @default(USER)
+
+  /// PIN Pitzaa (jamais le code PIN mobile money) : confirme les demandes de
+  /// paiement et l'accès au coffre-fort d'identifiants. Haché avec argon2.
+  pinHash String?
+
+  kycStatus KycStatus @default(NONE)
+  isPremium Boolean   @default(false)
+
+  /// Score de confiance calculé (ancienneté, paiements à l'heure, litiges, avis).
+  trustScore Int @default(0)
+
+  /// Ventes cumulées depuis l'inscription : déclenche le KYC au-delà de 100 000 XAF.
+  lifetimeSalesXaf Int @default(0)
+
+  /// Plafond cartes cadeaux de 300 000 XAF/mois avant KYC renforcé.
+  giftCardSalesCurrentMonthXaf Int       @default(0)
+  giftCardSalesMonthStartAt    DateTime?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  authProviders            AuthProvider[]
+  refreshTokens            RefreshToken[]
+  devices                  Device[]
+  kycSubmissions           KycSubmission[]         @relation("KycOwner")
+  kycReviewsPerformed      KycSubmission[]         @relation("KycReviewedBy")
+  wallet                   Wallet?
+  ownedGroups              SubscriptionGroup[]     @relation("GroupOwner")
+  memberships              GroupMembership[]
+  vaultAccessLogs          VaultAccessLog[]
+  giftCardListings         GiftCardListing[]       @relation("GiftCardSeller")
+  giftCardListingsVerified GiftCardListing[]       @relation("GiftCardVerifiedBy")
+  giftCardOrders           GiftCardOrder[]
+  giftCardCodeAccessLogs   GiftCardCodeAccessLog[]
+  withdrawals              Withdrawal[]
+  payments                 Payment[]
+  ledgerEntries            LedgerEntry[]
+  disputesRaised           Dispute[]               @relation("DisputeRaisedBy")
+  disputesAgainst          Dispute[]               @relation("DisputeAgainst")
+  disputesResolved         Dispute[]               @relation("DisputeResolvedBy")
+  sentMessages             Message[]
+  reviewsGiven             Review[]                @relation("ReviewAuthor")
+  reviewsReceived          Review[]                @relation("ReviewTarget")
+  notifications            Notification[]
+  auditLogs                AuditLog[]
+  premiumSubscription      PremiumSubscription?
+
+  @@map("users")
+}
+
+model AuthProvider {
+  id             String            @id @default(cuid())
+  userId         String
+  provider       OAuthProviderName
+  providerUserId String
+  createdAt      DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("auth_providers")
+}
+
+/// OTP envoyé par SMS, identifié par numéro de téléphone (pas encore un
+/// utilisateur lors de l'inscription). codeHash évite de stocker le code en clair.
+model OtpCode {
+  id          String     @id @default(cuid())
+  phone       String
+  purpose     OtpPurpose
+  codeHash    String
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([phone, purpose])
+  @@map("otp_codes")
+}
+
+model RefreshToken {
+  id                String    @id @default(cuid())
+  userId            String
+  tokenHash         String    @unique
+  userAgent         String?
+  ipAddress         String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  replacedByTokenId String?
+  createdAt         DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// Empreinte d'appareil pour la détection de fraude (comptes multiples sur un même appareil).
+model Device {
+  id         String   @id @default(cuid())
+  userId     String
+  deviceId   String
+  platform   String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([deviceId])
+  @@map("devices")
+}
+
+model KycSubmission {
+  id                String    @id @default(cuid())
+  userId            String
+  status            KycStatus @default(PENDING)
+  idDocumentUrl     String
+  selfieUrl         String
+  rejectionReason   String?
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user            User  @relation("KycOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedByAdmin User? @relation("KycReviewedBy", fields: [reviewedByAdminId], references: [id])
+
+  @@index([userId])
+  @@map("kyc_submissions")
+}
+
+model Review {
+  id                  String   @id @default(cuid())
+  authorId            String
+  targetId            String
+  membershipPaymentId String?
+  giftCardOrderId     String?
+  rating              Int
+  comment             String?
+  createdAt           DateTime @default(now())
+
+  author            User               @relation("ReviewAuthor", fields: [authorId], references: [id])
+  target            User               @relation("ReviewTarget", fields: [targetId], references: [id])
+  membershipPayment MembershipPayment? @relation(fields: [membershipPaymentId], references: [id])
+  giftCardOrder     GiftCardOrder?     @relation(fields: [giftCardOrderId], references: [id])
+
+  @@index([targetId])
+  @@map("reviews")
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue et partage d'abonnements
+// ---------------------------------------------------------------------------
+
+model Service {
+  id                         String   @id @default(cuid())
+  name                       String
+  category                   String
+  logoUrl                    String?
+  maxSlots                   Int
+  sharingRules               String?
+  recommendedPricePerSlotXaf Int
+  /// Seules les offres qui autorisent le partage sont listées au catalogue public.
+  allowsSharing              Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  groups SubscriptionGroup[]
+
+  @@map("services")
+}
+
+model SubscriptionGroup {
+  id                     String          @id @default(cuid())
+  serviceId              String
+  ownerId                String
+  pricePerSlotXaf        Int
+  totalSlots             Int
+  visibility             GroupVisibility @default(PRIVATE)
+  status                 GroupStatus     @default(ACTIVE)
+  autoAcceptJoinRequests Boolean         @default(false)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  service         Service           @relation(fields: [serviceId], references: [id])
+  owner           User              @relation("GroupOwner", fields: [ownerId], references: [id])
+  memberships     GroupMembership[]
+  credentialVault CredentialVault?
+  conversation    Conversation?
+
+  @@index([serviceId])
+  @@index([ownerId])
+  @@map("subscription_groups")
+}
+
+model GroupMembership {
+  id               String           @id @default(cuid())
+  groupId          String
+  userId           String
+  status           MembershipStatus @default(PENDING)
+  joinedAt         DateTime?
+  leftAt           DateTime?
+  nextPaymentDueAt DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  group    SubscriptionGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User                @relation(fields: [userId], references: [id])
+  payments MembershipPayment[]
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("group_memberships")
+}
+
+model MembershipPayment {
+  id              String                  @id @default(cuid())
+  membershipId    String
+  periodStart     DateTime
+  periodEnd       DateTime
+  amountXaf       Int
+  status          MembershipPaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  /// Séquestre libéré 48h après paiement si aucun litige n'est ouvert.
+  escrowReleaseAt DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  membership GroupMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  payment    Payment?
+  disputes   Dispute[]
+  reviews    Review[]
+
+  @@index([membershipId])
+  @@map("membership_payments")
+}
+
+/// Identifiants du service partagé, chiffrés AES-256-GCM (clé hors base, dans l'env).
+/// Non utilisé si l'accès se fait par invitation officielle du service.
+model CredentialVault {
+  id               String   @id @default(cuid())
+  groupId          String   @unique
+  encryptedPayload Bytes
+  iv               Bytes
+  authTag          Bytes
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  group      SubscriptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  accessLogs VaultAccessLog[]
+
+  @@map("credential_vaults")
+}
+
+/// Chaque consultation des identifiants du coffre-fort est journalisée.
+model VaultAccessLog {
+  id         String   @id @default(cuid())
+  vaultId    String
+  userId     String
+  accessedAt DateTime @default(now())
+
+  vault CredentialVault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id])
+
+  @@index([vaultId])
+  @@map("vault_access_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Cartes cadeaux
+// ---------------------------------------------------------------------------
+
+model GiftCardBrand {
+  id            String   @id @default(cuid())
+  name          String
+  /// Pays d'émission de la carte (code ISO 3166-1 alpha-2).
+  country       String
+  resaleAllowed Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  listings GiftCardListing[]
+
+  @@unique([name, country])
+  @@map("gift_card_brands")
+}
+
+model GiftCardListing {
+  id              String                @id @default(cuid())
+  sellerId        String
+  brandId         String
+  balanceXaf      Int
+  askingPriceXaf  Int
+  expiresAt       DateTime?
+  status          GiftCardListingStatus @default(PENDING_VERIFICATION)
+  /// Code chiffré dès réception (AES-256-GCM), masqué jusqu'au paiement de l'acheteur.
+  codeEncrypted   Bytes
+  codeIv          Bytes
+  codeAuthTag     Bytes
+  rejectionReason String?
+
+  /// Vérification manuelle du solde au MVP (voir interface GiftCardVerifier).
+  verifiedByAdminId String?
+  verifiedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seller          User           @relation("GiftCardSeller", fields: [sellerId], references: [id])
+  brand           GiftCardBrand  @relation(fields: [brandId], references: [id])
+  verifiedByAdmin User?          @relation("GiftCardVerifiedBy", fields: [verifiedByAdminId], references: [id])
+  order           GiftCardOrder?
+
+  @@index([sellerId])
+  @@index([brandId])
+  @@map("gift_card_listings")
+}
+
+model GiftCardOrder {
+  id              String              @id @default(cuid())
+  listingId       String              @unique
+  buyerId         String
+  pricePaidXaf    Int
+  status          GiftCardOrderStatus @default(PENDING_PAYMENT)
+  /// Le code est révélé une seule fois ; chaque consultation est journalisée.
+  codeRevealedAt  DateTime?
+  /// Séquestre de 72h après révélation du code.
+  escrowReleaseAt DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  listing        GiftCardListing         @relation(fields: [listingId], references: [id])
+  buyer          User                    @relation(fields: [buyerId], references: [id])
+  payment        Payment?
+  codeAccessLogs GiftCardCodeAccessLog[]
+  disputes       Dispute[]
+  reviews        Review[]
+  conversation   Conversation?
+
+  @@index([buyerId])
+  @@map("gift_card_orders")
+}
+
+model GiftCardCodeAccessLog {
+  id         String   @id @default(cuid())
+  orderId    String
+  userId     String
+  accessedAt DateTime @default(now())
+
+  order GiftCardOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id])
+
+  @@index([orderId])
+  @@map("gift_card_code_access_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Portefeuille et grand livre
+// ---------------------------------------------------------------------------
+
+/// Soldes mis en cache ; ils ne sont modifiés que dans la même transaction DB
+/// que les écritures du grand livre qui les justifient (voir LedgerEntry).
+model Wallet {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  availableBalanceXaf Int      @default(0)
+  escrowBalanceXaf    Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+/// Regroupe un ensemble équilibré d'écritures (somme des montants = 0).
+model LedgerTransaction {
+  id          String                @id @default(cuid())
+  type        LedgerTransactionType
+  description String?
+  createdAt   DateTime              @default(now())
+
+  entries LedgerEntry[]
+
+  @@map("ledger_transactions")
+}
+
+/// Écriture de grand livre en partie double. amountXaf est signé : positif
+/// pour un crédit, négatif pour un débit. userId est nul pour les comptes plateforme.
+model LedgerEntry {
+  id            String            @id @default(cuid())
+  transactionId String
+  accountType   LedgerAccountType
+  entryType     LedgerEntryType
+  userId        String?
+  amountXaf     Int
+  createdAt     DateTime          @default(now())
+
+  transaction LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user        User?             @relation(fields: [userId], references: [id])
+
+  @@index([transactionId])
+  @@index([userId])
+  @@map("ledger_entries")
+}
+
+/// Un paiement ne sert qu'un seul objet à la fois (membershipPayment, giftCardOrder
+/// ou withdrawal) — le champ purpose indique lequel.
+model Payment {
+  id                  String              @id @default(cuid())
+  userId              String
+  provider            PaymentProviderName
+  providerReference   String?
+  direction           PaymentDirection
+  purpose             PaymentPurpose
+  amountXaf           Int
+  status              PaymentStatus       @default(PENDING)
+  /// Garantit l'idempotence du traitement des webhooks fournisseur.
+  idempotencyKey      String              @unique
+  membershipPaymentId String?             @unique
+  giftCardOrderId     String?             @unique
+  withdrawalId        String?             @unique
+  failureReason       String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id])
+  membershipPayment MembershipPayment? @relation(fields: [membershipPaymentId], references: [id])
+  giftCardOrder     GiftCardOrder?     @relation(fields: [giftCardOrderId], references: [id])
+  withdrawal        Withdrawal?        @relation(fields: [withdrawalId], references: [id])
+
+  @@index([userId])
+  @@map("payments")
+}
+
+model Withdrawal {
+  id                String               @id @default(cuid())
+  userId            String
+  amountXaf         Int
+  feeAmountXaf      Int
+  operator          MobileMoneyOperator
+  destinationMsisdn String
+  status            WithdrawalStatus     @default(PENDING)
+  provider          PaymentProviderName?
+  providerReference String?
+  failureReason     String?
+  createdAt         DateTime             @default(now())
+  processedAt       DateTime?
+
+  user    User     @relation(fields: [userId], references: [id])
+  payment Payment?
+
+  @@index([userId])
+  @@map("withdrawals")
+}
+
+// ---------------------------------------------------------------------------
+// Litiges, messagerie, notifications, audit
+// ---------------------------------------------------------------------------
+
+model Dispute {
+  id                    String               @id @default(cuid())
+  raisedById            String
+  againstId             String?
+  relatedEntityType     DisputeRelatedEntity
+  membershipPaymentId   String?
+  giftCardOrderId       String?
+  reason                String
+  evidenceUrls          String[]
+  status                DisputeStatus        @default(OPEN)
+  responseDeadlineAt    DateTime?
+  arbitrationDeadlineAt DateTime?
+  resolvedByAdminId     String?
+  resolvedAt            DateTime?
+  resolutionNotes       String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  raisedBy          User               @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
+  against           User?              @relation("DisputeAgainst", fields: [againstId], references: [id])
+  resolvedByAdmin   User?              @relation("DisputeResolvedBy", fields: [resolvedByAdminId], references: [id])
+  membershipPayment MembershipPayment? @relation(fields: [membershipPaymentId], references: [id])
+  giftCardOrder     GiftCardOrder?     @relation(fields: [giftCardOrderId], references: [id])
+  conversation      Conversation?
+
+  @@index([raisedById])
+  @@index([membershipPaymentId])
+  @@index([giftCardOrderId])
+  @@map("disputes")
+}
+
+model Conversation {
+  id              String           @id @default(cuid())
+  type            ConversationType
+  groupId         String?          @unique
+  giftCardOrderId String?          @unique
+  disputeId       String?          @unique
+  createdAt       DateTime         @default(now())
+
+  group         SubscriptionGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  giftCardOrder GiftCardOrder?     @relation(fields: [giftCardOrderId], references: [id], onDelete: Cascade)
+  dispute       Dispute?           @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  messages      Message[]
+
+  @@map("conversations")
+}
+
+/// content est le texte affiché (après filtrage des numéros de téléphone, mobile
+/// money et liens WhatsApp) ; originalContent conserve le message brut pour audit.
+model Message {
+  id              String   @id @default(cuid())
+  conversationId  String
+  senderId        String
+  content         String
+  originalContent String?
+  flagged         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  actorId    String?
+  actorRole  UserRole?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Configuration et premium
+// ---------------------------------------------------------------------------
+
+/// Commissions et autres paramètres configurables par l'admin sans redéploiement.
+model AppSetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+model PremiumSubscription {
+  id               String        @id @default(cuid())
+  userId           String        @unique
+  status           PremiumStatus @default(ACTIVE)
+  startedAt        DateTime      @default(now())
+  currentPeriodEnd DateTime
+  cancelledAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("premium_subscriptions")
+}

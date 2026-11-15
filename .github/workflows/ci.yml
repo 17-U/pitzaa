@@ -67,5 +67,11 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Apply database migrations
+        run: pnpm --filter @pitzaa/api exec prisma migrate deploy
+
       - name: Test
         run: pnpm run test
+
+      - name: E2E test (API)
+        run: pnpm --filter @pitzaa/api test:e2e
