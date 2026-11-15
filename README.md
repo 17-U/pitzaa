@@ -79,8 +79,17 @@ Une fois l'API lancée (étape 4 ci-dessus) :
 
 - `GET http://localhost:3000/` → informations de base (`{ "name": "Pitzaa API", "version": "0.0.1" }`)
 - `GET http://localhost:3000/health` → sonde de santé (`{ "status": "ok", "timestamp": "..." }`)
-- `http://localhost:3000/docs` → documentation Swagger (OpenAPI), incluant les routes `/auth/*`
+- `http://localhost:3000/docs` → documentation Swagger (OpenAPI), incluant les routes `/auth/*`, `/wallet/*`, `/withdrawals/*`
 - Inscription / connexion : `POST /auth/register-or-login/request-otp` puis `POST /auth/register-or-login/verify-otp` (le code OTP est loggé par le `MockSmsProvider` en développement, voir les logs de l'API)
+- Portefeuille : `GET /wallet/me` (solde disponible/séquestre), `GET /wallet/me/history` (écritures du grand livre)
+- Retrait (2FA obligatoire) : `POST /withdrawals/otp` puis `POST /withdrawals` avec le code OTP reçu, `GET /withdrawals` pour l'historique
+
+## Paiements et grand livre
+
+- **Grand livre en partie double** : `apps/api/src/ledger/ledger.service.ts` est l'unique point d'entrée qui modifie un solde de portefeuille — toujours en écrivant une transaction équilibrée (`LedgerTransaction` + `LedgerEntry[]`, somme des montants = 0).
+- **Fournisseurs de paiement** : interface commune `PaymentProvider` (apps/api/src/payments/providers/), avec `MockPaymentProvider` (succès/échec/délai simulés selon le suffixe du numéro — `...0000` échoue, `...1111` reste bloqué, sinon succès après un court délai) et des squelettes `FapshiProvider`/`KPayProvider` documentés (`TODO`, voir [QUESTIONS.md](./QUESTIONS.md)). Le routage primaire/secours est configuré via `PAYMENT_PRIMARY_PROVIDER`/`PAYMENT_FALLBACK_PROVIDER`, ou forcé en développement via `PAYMENT_PROVIDER=mock`.
+- **Webhooks** : `POST /webhooks/:provider` (fapshi, kpay, mock) — signature vérifiée par le fournisseur, idempotence stricte (table `webhook_events`), traitement asynchrone via une file BullMQ (Redis), confirmation systématique par `getStatus()` avant tout crédit.
+- **Filet de sécurité et réconciliation** : une tâche récurrente (toutes les 30s) confirme les paiements restés en attente (au cas où un webhook serait manqué), et une tâche quotidienne revérifie les paiements déjà confirmés et journalise les écarts dans `audit_logs`.
 
 ## Base de données et Prisma
 
@@ -114,4 +123,4 @@ Voir [QUESTIONS.md](./QUESTIONS.md) pour la liste des points qui nécessitent un
 
 ## Avancement
 
-Le projet est construit phase par phase (voir le prompt de pilotage, adapté : pas d'app mobile — tout en web dans `apps/web`). État actuel : **Phase 1 — Modèle de données et authentification** terminée (schéma Prisma complet, inscription/connexion par téléphone + OTP, JWT avec rotation des refresh tokens, rôles, PIN Pitzaa, export et suppression de compte).
+Le projet est construit phase par phase (voir le prompt de pilotage, adapté : pas d'app mobile — tout en web dans `apps/web`). État actuel : **Phase 2 — Grand livre et paiements** terminée (portefeuille et grand livre en partie double, interface `PaymentProvider` + `MockPaymentProvider` + squelettes Fapshi/KPay, routage primaire/secours, webhooks idempotents traités via BullMQ, retraits avec 2FA obligatoire, filet de sécurité et réconciliation).

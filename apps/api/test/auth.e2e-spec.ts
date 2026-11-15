@@ -64,8 +64,11 @@ describe('Auth (e2e)', () => {
 
   beforeEach(async () => {
     sms.messages = [];
-    await prisma.otpCode.deleteMany();
-    await prisma.user.deleteMany();
+    // Nettoyage scopé à PHONE : la base de test est partagée avec d'autres fichiers
+    // e2e (ex. withdrawals.e2e-spec.ts) qui peuvent tourner en parallèle sur les
+    // mêmes tables — un deleteMany() sans filtre supprimerait aussi leurs données.
+    await prisma.otpCode.deleteMany({ where: { phone: PHONE } });
+    await prisma.user.deleteMany({ where: { phone: PHONE } });
   });
 
   afterAll(async () => {

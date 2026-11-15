@@ -649,6 +649,7 @@ model Payment {
   withdrawal        Withdrawal?        @relation(fields: [withdrawalId], references: [id])
 
   @@index([userId])
+  @@index([provider, providerReference])
   @@map("payments")
 }
 
@@ -671,6 +672,20 @@ model Withdrawal {
 
   @@index([userId])
   @@map("withdrawals")
+}
+
+/// Dédoublonne les webhooks fournisseur : un événement (provider, providerEventId)
+/// n'est traité qu'une seule fois, même reçu plusieurs fois.
+model WebhookEvent {
+  id              String              @id @default(cuid())
+  provider        PaymentProviderName
+  providerEventId String
+  payload         Json
+  receivedAt      DateTime            @default(now())
+  processedAt     DateTime?
+
+  @@unique([provider, providerEventId])
+  @@map("webhook_events")
 }
 
 // ---------------------------------------------------------------------------

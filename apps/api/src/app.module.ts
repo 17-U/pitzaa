@@ -1,12 +1,17 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
+import { LedgerModule } from './ledger/ledger.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { WalletModule } from './wallet/wallet.module';
+import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 
 @Module({
   imports: [
@@ -17,9 +22,19 @@ import { PrismaModule } from './prisma/prisma.module';
       envFilePath: ['../../.env', '.env'],
     }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: { url: config.getOrThrow<string>('REDIS_URL') },
+      }),
+    }),
     PrismaModule,
     HealthModule,
     AuthModule,
+    LedgerModule,
+    WalletModule,
+    PaymentsModule,
+    WithdrawalsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -6,9 +6,10 @@ Liste des points qui nécessitent une décision métier ou une information que j
 
 ## Paiements mobile money
 
-- **Documentation Fapshi** : je n'ai pas (encore) lu la documentation officielle de l'API Fapshi (endpoints `collect`, `getStatus`, `payout`, format des webhooks, signature). L'adaptateur `FapshiProvider` sera écrit derrière l'interface `PaymentProvider` avec des `TODO` explicites tant que la doc n'est pas vérifiée. → À faire en Phase 2 : fournir un lien vers la doc Fapshi à jour, ou les specs d'API (Postman/OpenAPI) si disponibles.
-- **Documentation KPay** : même remarque pour `KPayProvider`. Merci de fournir la doc officielle (endpoints, format de signature de webhook, codes d'erreur).
+- **Documentation Fapshi** : je n'ai pas (encore) lu la documentation officielle de l'API Fapshi (endpoints `collect`, `getStatus`, `payout`, format des webhooks, signature). L'interface `PaymentProvider` (apps/api/src/payments/providers/payment-provider.interface.ts) et le routage Fapshi→KPay sont implémentés et testés via `MockPaymentProvider`, mais `apps/api/src/payments/providers/fapshi.provider.ts` reste un squelette : chaque méthode lève une erreur « non implémenté » avec un `TODO` explicite. → Pour débloquer l'implémentation réelle : un lien vers la doc Fapshi à jour, ou les specs d'API (Postman/OpenAPI) si disponibles.
+- **Documentation KPay** : même remarque pour `apps/api/src/payments/providers/kpay.provider.ts`. Merci de fournir la doc officielle (endpoints, format de signature de webhook, codes d'erreur).
 - **Comptes sandbox** : avez-vous des comptes de test (sandbox) Fapshi/KPay pour valider les intégrations avant la production ?
+- **En attendant** : `PAYMENT_PROVIDER=mock` force l'utilisation de `MockPaymentProvider` pour tout le développement/tests (collecte, retrait, webhooks, idempotence, réconciliation sont tous fonctionnels avec ce fournisseur simulé). Ne pas passer `PAYMENT_PROVIDER=fapshi` ou `kpay` avant que ces adaptateurs soient complétés.
 
 ## SMS / OTP
 

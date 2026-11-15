@@ -4,7 +4,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true — nécessaire pour vérifier la signature des webhooks de paiement,
+  // qui se calcule sur le corps brut de la requête, avant tout parsing JSON.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.enableCors();
   app.useGlobalPipes(
