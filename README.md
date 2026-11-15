@@ -2,14 +2,15 @@
 
 Application de partage d'abonnements numériques et d'achat-revente de cartes cadeaux, pour le Cameroun puis la zone CEMAC. Paiements en mobile money (MTN MoMo, Orange Money) via Fapshi (principal) et KPay (secours). Devise : franc CFA (XAF), sans décimales.
 
+Pas d'application mobile : tout le produit (site vitrine, espace utilisateur, back-office) est servi en web par `apps/web`.
+
 ## Structure du monorepo
 
 ```
 pitzaa/
   apps/
     api/      # NestJS — API REST + Swagger (/docs)
-    mobile/   # Expo (React Native) — application mobile
-    admin/    # Next.js — back-office + site vitrine
+    web/      # Next.js — site vitrine + espace utilisateur + back-office
   packages/
     shared/   # @pitzaa/shared : types, schémas (zod), constantes communes
   docker-compose.yml
@@ -41,11 +42,8 @@ docker compose up -d
 # 4. Lancer l'API (NestJS) — http://localhost:3000, docs Swagger sur /docs
 pnpm --filter @pitzaa/api start:dev
 
-# 5. Lancer le back-office (Next.js) — http://localhost:3100
-pnpm --filter @pitzaa/admin dev
-
-# 6. Lancer l'application mobile (Expo)
-pnpm --filter @pitzaa/mobile start
+# 5. Lancer l'app web (Next.js) — http://localhost:3100
+pnpm --filter @pitzaa/web dev
 ```
 
 Ou, pour tout lancer en parallèle via Turborepo :
@@ -79,7 +77,7 @@ Une fois l'API lancée (étape 4 ci-dessus) :
 
 ## Base de données de test
 
-`docker-compose.yml` démarre un second service PostgreSQL (`postgres-test`, port `5433` par défaut) dédié aux tests automatisés (API, grand livre, etc.), isolé de la base de développement.
+`docker-compose.yml` démarre un second service PostgreSQL (`postgres-test`) dédié aux tests automatisés (API, grand livre, etc.), isolé de la base de développement. Les ports par défaut (`TEST_POSTGRES_PORT`, `REDIS_PORT`) peuvent être changés dans `.env` si un autre projet local les utilise déjà.
 
 ## Questions ouvertes
 
@@ -87,4 +85,4 @@ Voir [QUESTIONS.md](./QUESTIONS.md) pour la liste des points qui nécessitent un
 
 ## Avancement
 
-Le projet est construit phase par phase (voir le prompt de pilotage). État actuel : **Phase 0 — Socle** terminée.
+Le projet est construit phase par phase (voir le prompt de pilotage, adapté : pas d'app mobile — tout en web dans `apps/web`). État actuel : **Phase 0 — Socle** terminée.

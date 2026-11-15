@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("Home", () => {
-  it("renders the admin back-office title", () => {
+  it("renders the Pitzaa landing page title", () => {
     render(<Home />);
-    expect(screen.getByText("Pitzaa — Back-office")).toBeDefined();
+    expect(screen.getByText("Pitzaa")).toBeDefined();
   });
 });

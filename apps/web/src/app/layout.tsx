@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pitzaa — Back-office",
-  description: "Administration Pitzaa : utilisateurs, catalogue, KYC, litiges, commissions.",
+  title: "Pitzaa",
+  description:
+    "Partage d'abonnements et achat-revente de cartes cadeaux, paiements en mobile money (XAF).",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

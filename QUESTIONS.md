@@ -2,6 +2,8 @@
 
 Liste des points qui nécessitent une décision métier ou une information que je n'ai pas (clé API, doc fournisseur, choix produit). Je continue avec des valeurs d'exemple / hypothèses raisonnables en attendant vos réponses.
 
+> **Décision prise** : pas d'application mobile Expo. Tout le produit (site vitrine, espace utilisateur, back-office) est servi en web par `apps/web` (Next.js). `apps/mobile` a été retiré du monorepo.
+
 ## Paiements mobile money
 
 - **Documentation Fapshi** : je n'ai pas (encore) lu la documentation officielle de l'API Fapshi (endpoints `collect`, `getStatus`, `payout`, format des webhooks, signature). L'adaptateur `FapshiProvider` sera écrit derrière l'interface `PaymentProvider` avec des `TODO` explicites tant que la doc n'est pas vérifiée. → À faire en Phase 2 : fournir un lien vers la doc Fapshi à jour, ou les specs d'API (Postman/OpenAPI) si disponibles.
@@ -14,7 +16,7 @@ Liste des points qui nécessitent une décision métier ou une information que j
 
 ## Notifications push
 
-- Le brief mentionne « Expo / Firebase ». Utiliserez-vous les notifications push Expo (simple, géré par Expo) ou Firebase Cloud Messaging directement (plus de contrôle, nécessite un projet Firebase) ? Par défaut je pars sur les push Expo en MVP (plus simple avec Expo Router), avec la possibilité de brancher Firebase plus tard.
+- Le brief mentionne « Expo / Firebase », pensé pour le mobile. Sans app mobile, les notifications push se feront en **Web Push** (API navigateur standard, clés VAPID) — moins fiable que du natif sur mobile (dépend du navigateur, pas de push en arrière-plan sur iOS Safari avant iOS 16.4+). Les rappels J-3 de paiement et alertes critiques s'appuieront surtout sur **SMS** et **in-app**. Êtes-vous d'accord avec cette approche, ou souhaitez-vous qu'on prévoie une PWA installable pour fiabiliser les push sur mobile ?
 
 ## Hébergement
 
