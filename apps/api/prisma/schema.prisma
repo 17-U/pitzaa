@@ -79,6 +79,7 @@ enum GiftCardListingStatus {
 
 enum GiftCardOrderStatus {
   PENDING_PAYMENT
+  PAYMENT_FAILED
   PAID
   CODE_REVEALED
   ESCROW_RELEASED
@@ -544,6 +545,9 @@ model GiftCardOrder {
   listingId       String              @unique
   buyerId         String
   pricePaidXaf    Int
+  /// Part de pricePaidXaf revenant à la plateforme (8 %, réduite de moitié pour
+  /// les vendeurs Premium), figée à l'achat — même logique que MembershipPayment.commissionXaf.
+  commissionXaf   Int
   status          GiftCardOrderStatus @default(PENDING_PAYMENT)
   /// Le code est révélé une seule fois ; chaque consultation est journalisée.
   codeRevealedAt  DateTime?

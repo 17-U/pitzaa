@@ -275,6 +275,18 @@ export class PaymentsService {
         where: { id: payment.membershipPaymentId },
         data: { status: 'FAILED' },
       });
+    } else if (payment.giftCardOrderId) {
+      // La collecte a échoué : personne n'a jamais rien payé, on remet
+      // simplement l'annonce en vente (elle avait été réservée à la création
+      // de la commande pour empêcher une double vente pendant le paiement).
+      const order = await tx.giftCardOrder.update({
+        where: { id: payment.giftCardOrderId },
+        data: { status: 'PAYMENT_FAILED' },
+      });
+      await tx.giftCardListing.update({
+        where: { id: order.listingId },
+        data: { status: 'LISTED' },
+      });
     }
 
     return tx.payment.update({

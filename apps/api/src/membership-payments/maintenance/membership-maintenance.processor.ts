@@ -99,6 +99,16 @@ export class MembershipMaintenanceProcessor extends WorkerHost {
         const netAmount = payment.amountXaf - payment.commissionXaf;
 
         await this.prisma.$transaction(async (tx) => {
+          // Idempotence : re-vérifie l'état à l'intérieur de la transaction pour éviter
+          // un double traitement si cette tâche se déclenche deux fois en parallèle
+          // (planification BullMQ + déclenchement manuel, par exemple).
+          const fresh = await tx.membershipPayment.findUniqueOrThrow({
+            where: { id: payment.id },
+          });
+          if (fresh.status !== 'PAID') {
+            return;
+          }
+
           await this.ledger.postEntries(
             tx,
             'MEMBERSHIP_ESCROW_RELEASE',
@@ -126,6 +136,11 @@ export class MembershipMaintenanceProcessor extends WorkerHost {
           await tx.membershipPayment.update({
             where: { id: payment.id },
             data: { status: 'ESCROW_RELEASED' },
+          });
+          // Déclencheur KYC : ventes cumulées au-delà de 100 000 XAF (voir User.lifetimeSalesXaf).
+          await tx.user.update({
+            where: { id: ownerId },
+            data: { lifetimeSalesXaf: { increment: payment.amountXaf } },
           });
         });
       } catch (error) {

@@ -29,4 +29,12 @@ Liste des points qui nécessitent une décision métier ou une information que j
 
 ## Vérification des cartes cadeaux
 
-- Vérification manuelle au MVP via une interface `GiftCardVerifier`. Si vous avez déjà identifié une API tierce de vérification de solde (par marque de carte), merci de la préciser pour la Phase 4.
+- Vérification manuelle au MVP via l'interface `GiftCardVerifier` (apps/api/src/gift-cards/verifiers/). `ManualGiftCardVerifier` est le seul fournisseur branché : il ne confirme jamais rien automatiquement, un admin valide via `POST /gift-cards/listings/:id/verify` après avoir consulté le code chiffré via `GET /gift-cards/listings/:id/admin/code` (accès journalisé). Si vous avez déjà identifié une API tierce de vérification de solde (par marque de carte), merci de la préciser pour brancher un futur `GiftCardVerifier` automatisé sans changer le reste du code.
+
+## Commission Premium sur les cartes cadeaux (décision prise)
+
+- Le brief dit « Premium : 1 000 XAF/mois (frais réduits de moitié) » sans préciser si la réduction s'applique aussi à la commission de 8 % sur la revente de cartes cadeaux (qui est à la charge du **vendeur**, alors que la réduction est décrite dans le contexte des frais payés par le **co-abonné**). J'ai choisi d'appliquer la réduction de moitié de façon symétrique : un vendeur Premium paie 4 % au lieu de 8 % (voir `computeGiftCardSaleAmount` dans `packages/shared/src/pricing.ts`). Dites-moi si ce n'est pas l'intention et je retire la réduction côté vendeur.
+
+## Séquestre des paiements d'abonnement en plusieurs mois d'avance (décision prise)
+
+- Pour un paiement de 3 ou 6 mois d'avance, j'ai choisi un séquestre unique de 48h sur la totalité du montant (un seul litige possible pour toute la période), plutôt qu'une libération progressive mois par mois à mesure que chaque période démarre. C'est plus simple et évite de retarder le paiement du propriétaire pour des mois à venir. Dites-moi si vous préférez une libération progressive.

@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { GiftCardsModule } from './gift-cards/gift-cards.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { LedgerModule } from './ledger/ledger.module';
@@ -43,6 +44,7 @@ import { WithdrawalsModule } from './withdrawals/withdrawals.module';
     GroupsModule,
     MembershipPaymentsModule,
     VaultModule,
+    GiftCardsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
