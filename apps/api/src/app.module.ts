@@ -7,13 +7,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { DisputesModule } from './disputes/disputes.module';
 import { GiftCardsModule } from './gift-cards/gift-cards.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { MembershipPaymentsModule } from './membership-payments/membership-payments.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { VaultModule } from './vault/vault.module';
 import { WalletModule } from './wallet/wallet.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
@@ -45,6 +49,10 @@ import { WithdrawalsModule } from './withdrawals/withdrawals.module';
     MembershipPaymentsModule,
     VaultModule,
     GiftCardsModule,
+    MessagingModule,
+    NotificationsModule,
+    DisputesModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

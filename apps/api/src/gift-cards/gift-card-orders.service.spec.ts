@@ -65,6 +65,16 @@ function createFakePaymentsService() {
   };
 }
 
+function createFakeMessaging() {
+  return {
+    createConversationForGiftCardOrder: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createFakeNotifications() {
+  return { notify: jest.fn().mockResolvedValue(undefined) };
+}
+
 describe('GiftCardOrdersService', () => {
   beforeEach(() => {
     verifySecretMock.mockReset();
@@ -84,6 +94,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(
@@ -102,6 +114,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(
@@ -122,6 +136,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(
@@ -144,6 +160,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(
@@ -171,6 +189,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(
@@ -202,6 +222,8 @@ describe('GiftCardOrdersService', () => {
         ledger as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       const result = await service.buy('buyer_1', 'listing_1', {
@@ -254,6 +276,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(
@@ -279,6 +303,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(service.revealCode('buyer_1', 'order_1')).rejects.toThrow(
@@ -299,6 +325,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       await expect(service.revealCode('buyer_1', 'order_1')).rejects.toThrow(
@@ -328,6 +356,8 @@ describe('GiftCardOrdersService', () => {
         createFakeLedger() as never,
         createFakePaymentsService() as never,
         createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
       );
 
       const result = await service.revealCode('buyer_1', 'order_1');

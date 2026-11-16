@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../auth/types/authenticated-request.interface';
+import { DisputesService } from '../disputes/disputes.service';
+import { CreateDisputeDto } from '../disputes/dto/create-dispute.dto';
 import { BuyListingDto } from './dto/buy-listing.dto';
 import { GiftCardOrdersService } from './gift-card-orders.service';
 
@@ -11,7 +13,10 @@ import { GiftCardOrdersService } from './gift-card-orders.service';
 @UseGuards(JwtAuthGuard)
 @Controller('gift-cards')
 export class GiftCardOrdersController {
-  constructor(private readonly ordersService: GiftCardOrdersService) {}
+  constructor(
+    private readonly ordersService: GiftCardOrdersService,
+    private readonly disputesService: DisputesService,
+  ) {}
 
   @Post('listings/:id/buy')
   @ApiOperation({
@@ -35,6 +40,23 @@ export class GiftCardOrdersController {
     @Param('id') orderId: string,
   ) {
     return this.ordersService.revealCode(user.id, orderId);
+  }
+
+  @Post('orders/:id/dispute')
+  @ApiOperation({
+    summary: 'Ouvre un litige sur une commande (code invalide/inutilisable)',
+  })
+  dispute(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') orderId: string,
+    @Body() dto: CreateDisputeDto,
+  ) {
+    return this.disputesService.createForGiftCardOrder(
+      user.id,
+      orderId,
+      dto.reason,
+      dto.evidenceUrls,
+    );
   }
 
   @Get('orders/mine')

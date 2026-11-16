@@ -20,8 +20,25 @@ function createFakePrisma() {
     update: jest.fn(),
   };
 
-  const prisma = { service, subscriptionGroup, groupMembership };
+  const tx = { subscriptionGroup, groupMembership };
+  const prisma = {
+    service,
+    subscriptionGroup,
+    groupMembership,
+    $transaction: jest.fn((arg: unknown) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      return (arg as (t: typeof tx) => Promise<unknown>)(tx);
+    }),
+  };
   return { prisma, service, subscriptionGroup, groupMembership };
+}
+
+function createFakeMessaging() {
+  return { createConversationForGroup: jest.fn().mockResolvedValue(undefined) };
+}
+
+function createFakeNotifications() {
+  return { notify: jest.fn().mockResolvedValue(undefined) };
 }
 
 describe('GroupsService', () => {
@@ -32,7 +49,11 @@ describe('GroupsService', () => {
         allowsSharing: false,
         maxSlots: 4,
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(
         groups.create('owner_1', {
@@ -49,7 +70,11 @@ describe('GroupsService', () => {
         allowsSharing: true,
         maxSlots: 4,
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(
         groups.create('owner_1', {
@@ -67,7 +92,11 @@ describe('GroupsService', () => {
         maxSlots: 4,
       });
       subscriptionGroup.create.mockResolvedValue({ id: 'grp_1' });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await groups.create('owner_1', {
         serviceId: 'svc_1',
@@ -96,7 +125,11 @@ describe('GroupsService', () => {
         status: 'ACTIVE',
         ownerId: 'owner_1',
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(groups.requestJoin('owner_1', 'grp_1')).rejects.toThrow(
         BadRequestException,
@@ -111,7 +144,11 @@ describe('GroupsService', () => {
         ownerId: 'owner_1',
       });
       groupMembership.findUnique.mockResolvedValue({ status: 'ACTIVE' });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(groups.requestJoin('user_1', 'grp_1')).rejects.toThrow(
         BadRequestException,
@@ -130,7 +167,11 @@ describe('GroupsService', () => {
       groupMembership.findUnique.mockResolvedValue(null);
       groupMembership.count.mockResolvedValue(1);
       groupMembership.upsert.mockResolvedValue({ status: 'ACTIVE' });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await groups.requestJoin('user_1', 'grp_1');
 
@@ -150,7 +191,11 @@ describe('GroupsService', () => {
       });
       groupMembership.findUnique.mockResolvedValue(null);
       groupMembership.count.mockResolvedValue(2);
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(groups.requestJoin('user_1', 'grp_1')).rejects.toThrow(
         BadRequestException,
@@ -169,7 +214,11 @@ describe('GroupsService', () => {
       });
       groupMembership.findUnique.mockResolvedValue(null);
       groupMembership.upsert.mockResolvedValue({ status: 'PENDING' });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await groups.requestJoin('user_1', 'grp_1');
 
@@ -190,7 +239,11 @@ describe('GroupsService', () => {
         groupId: 'grp_1',
         group: { ownerId: 'owner_1' },
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(
         groups.acceptJoinRequest('not_owner', 'ms_1'),
@@ -210,7 +263,11 @@ describe('GroupsService', () => {
         totalSlots: 1,
       });
       groupMembership.count.mockResolvedValue(1);
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(groups.acceptJoinRequest('owner_1', 'ms_1')).rejects.toThrow(
         BadRequestException,
@@ -226,7 +283,11 @@ describe('GroupsService', () => {
         userId: 'other_user',
         status: 'ACTIVE',
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await expect(groups.leave('user_1', 'ms_1')).rejects.toThrow(
         NotFoundException,
@@ -242,7 +303,11 @@ describe('GroupsService', () => {
         status: 'ACTIVE',
         nextPaymentDueAt: future,
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await groups.leave('user_1', 'ms_1');
 
@@ -260,7 +325,11 @@ describe('GroupsService', () => {
         status: 'ACTIVE',
         nextPaymentDueAt: null,
       });
-      const groups = new GroupsService(prisma as never);
+      const groups = new GroupsService(
+        prisma as never,
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
 
       await groups.leave('user_1', 'ms_1');
 

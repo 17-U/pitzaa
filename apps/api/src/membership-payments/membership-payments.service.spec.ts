@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import * as cryptoUtil from '../common/crypto.util';
 import { MembershipPaymentsService } from './membership-payments.service';
 
@@ -20,21 +16,19 @@ function createFakePrisma() {
     findUnique: jest.fn(),
     findUniqueOrThrow: jest.fn(),
   };
-  const dispute = { create: jest.fn() };
 
-  const tx = { membershipPayment, groupMembership, dispute };
+  const tx = { membershipPayment, groupMembership };
   const prisma = {
     groupMembership,
     user,
     wallet,
     membershipPayment,
-    dispute,
     $transaction: jest.fn(
       async (callback: (t: typeof tx) => Promise<unknown>) => callback(tx),
     ),
   };
 
-  return { prisma, groupMembership, user, wallet, membershipPayment, dispute };
+  return { prisma, groupMembership, user, wallet, membershipPayment };
 }
 
 function createFakeLedger() {
@@ -287,71 +281,6 @@ describe('MembershipPaymentsService', () => {
           membershipPaymentId: 'mp_1',
         }),
       );
-    });
-  });
-
-  describe('reportNoAccess', () => {
-    it('rejects a report from someone other than the payer', async () => {
-      const { prisma, membershipPayment } = createFakePrisma();
-      membershipPayment.findUnique.mockResolvedValue({
-        status: 'PAID',
-        membership: { userId: 'other_user', group: { ownerId: 'owner_1' } },
-      });
-      const service = new MembershipPaymentsService(
-        prisma as never,
-        createFakeLedger() as never,
-        createFakePaymentsService() as never,
-      );
-
-      await expect(
-        service.reportNoAccess('user_1', 'mp_1', 'Pas accès'),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('rejects a report on a payment that is not PAID', async () => {
-      const { prisma, membershipPayment } = createFakePrisma();
-      membershipPayment.findUnique.mockResolvedValue({
-        status: 'ESCROW_RELEASED',
-        membership: { userId: 'user_1', group: { ownerId: 'owner_1' } },
-      });
-      const service = new MembershipPaymentsService(
-        prisma as never,
-        createFakeLedger() as never,
-        createFakePaymentsService() as never,
-      );
-
-      await expect(
-        service.reportNoAccess('user_1', 'mp_1', 'Pas accès'),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('freezes the payment and opens a dispute against the group owner', async () => {
-      const { prisma, membershipPayment, dispute } = createFakePrisma();
-      membershipPayment.findUnique.mockResolvedValue({
-        status: 'PAID',
-        membership: { userId: 'user_1', group: { ownerId: 'owner_1' } },
-      });
-      const service = new MembershipPaymentsService(
-        prisma as never,
-        createFakeLedger() as never,
-        createFakePaymentsService() as never,
-      );
-
-      await service.reportNoAccess('user_1', 'mp_1', 'Pas accès');
-
-      expect(membershipPayment.update).toHaveBeenCalledWith({
-        where: { id: 'mp_1' },
-        data: { status: 'DISPUTED' },
-      });
-      expect(dispute.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          raisedById: 'user_1',
-          againstId: 'owner_1',
-          relatedEntityType: 'MEMBERSHIP_PAYMENT',
-          membershipPaymentId: 'mp_1',
-          reason: 'Pas accès',
-        }),
-      });
     });
   });
 });

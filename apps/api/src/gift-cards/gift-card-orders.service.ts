@@ -12,6 +12,8 @@ import {
 } from '@pitzaa/shared';
 import { verifySecret } from '../common/crypto.util';
 import { LedgerService } from '../ledger/ledger.service';
+import { MessagingService } from '../messaging/messaging.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { decryptVaultPayload } from '../vault/vault-crypto.util';
@@ -28,6 +30,8 @@ export class GiftCardOrdersService {
     private readonly ledger: LedgerService,
     private readonly paymentsService: PaymentsService,
     private readonly config: ConfigService,
+    private readonly messaging: MessagingService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private get encryptionKey(): string {
@@ -90,7 +94,7 @@ export class GiftCardOrdersService {
         where: { id: listing.id },
         data: { status: 'SOLD' },
       });
-      return tx.giftCardOrder.create({
+      const created = await tx.giftCardOrder.create({
         data: {
           listingId: listing.id,
           buyerId,
@@ -98,7 +102,16 @@ export class GiftCardOrdersService {
           commissionXaf,
         },
       });
+      await this.messaging.createConversationForGiftCardOrder(tx, created.id);
+      return created;
     });
+
+    await this.notifications.notify(
+      listing.sellerId,
+      'GIFT_CARD_SOLD',
+      'Votre carte cadeau a été vendue',
+      'Un acheteur a commandé votre carte cadeau. Le paiement est en cours de confirmation.',
+    );
 
     await this.paymentsService.initiateCollection({
       userId: buyerId,
@@ -129,7 +142,7 @@ export class GiftCardOrdersService {
       throw new BadRequestException('Solde Pitzaa insuffisant pour cet achat.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const paid = await this.prisma.$transaction(async (tx) => {
       await tx.giftCardListing.update({
         where: { id: listingId },
         data: { status: 'SOLD' },
@@ -143,6 +156,7 @@ export class GiftCardOrdersService {
           commissionXaf,
         },
       });
+      await this.messaging.createConversationForGiftCardOrder(tx, order.id);
 
       await this.ledger.postEntries(
         tx,
@@ -169,6 +183,15 @@ export class GiftCardOrdersService {
         data: { status: 'PAID' },
       });
     });
+
+    await this.notifications.notify(
+      sellerId,
+      'GIFT_CARD_SOLD',
+      'Votre carte cadeau a été vendue',
+      'Un acheteur a payé votre carte cadeau depuis son portefeuille Pitzaa. Les fonds sont en séquestre.',
+    );
+
+    return paid;
   }
 
   /** Le code n'est révélé qu'une seule fois ; chaque consultation est journalisée. */
@@ -213,6 +236,13 @@ export class GiftCardOrdersService {
         data: { orderId, userId: buyerId },
       }),
     ]);
+
+    await this.notifications.notify(
+      order.listing.sellerId,
+      'GIFT_CARD_CODE_REVEALED',
+      'Le code de votre carte cadeau a été révélé',
+      'L’acheteur a révélé le code. Le délai de séquestre de 72h a commencé.',
+    );
 
     return { code };
   }

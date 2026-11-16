@@ -5,13 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { GroupMembership, SubscriptionGroup } from '@prisma/client';
+import { MessagingService } from '../messaging/messaging.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 
 @Injectable()
 export class GroupsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly messaging: MessagingService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async create(
     ownerId: string,
@@ -29,15 +35,19 @@ export class GroupsService {
       );
     }
 
-    return this.prisma.subscriptionGroup.create({
-      data: {
-        serviceId: dto.serviceId,
-        ownerId,
-        pricePerSlotXaf: dto.pricePerSlotXaf,
-        totalSlots: dto.totalSlots,
-        visibility: dto.visibility ?? 'PRIVATE',
-        autoAcceptJoinRequests: dto.autoAcceptJoinRequests ?? false,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const group = await tx.subscriptionGroup.create({
+        data: {
+          serviceId: dto.serviceId,
+          ownerId,
+          pricePerSlotXaf: dto.pricePerSlotXaf,
+          totalSlots: dto.totalSlots,
+          visibility: dto.visibility ?? 'PRIVATE',
+          autoAcceptJoinRequests: dto.autoAcceptJoinRequests ?? false,
+        },
+      });
+      await this.messaging.createConversationForGroup(tx, group.id);
+      return group;
     });
   }
 
@@ -165,11 +175,20 @@ export class GroupsService {
       });
     }
 
-    return this.prisma.groupMembership.upsert({
+    const membership = await this.prisma.groupMembership.upsert({
       where: { groupId_userId: { groupId, userId } },
       create: { groupId, userId, status: 'PENDING' },
       update: { status: 'PENDING', leftAt: null },
     });
+
+    await this.notifications.notify(
+      group.ownerId,
+      'GROUP_JOIN_REQUEST',
+      'Nouvelle demande d’adhésion',
+      'Un utilisateur souhaite rejoindre votre groupe.',
+    );
+
+    return membership;
   }
 
   private async assertHasCapacity(
@@ -220,10 +239,19 @@ export class GroupsService {
     await this.assertHasCapacity(membership.groupId, group.totalSlots);
 
     const now = new Date();
-    return this.prisma.groupMembership.update({
+    const accepted = await this.prisma.groupMembership.update({
       where: { id: membershipId },
       data: { status: 'ACTIVE', joinedAt: now, nextPaymentDueAt: now },
     });
+
+    await this.notifications.notify(
+      accepted.userId,
+      'GROUP_JOIN_ACCEPTED',
+      'Votre demande a été acceptée',
+      'Vous faites maintenant partie du groupe.',
+    );
+
+    return accepted;
   }
 
   async rejectJoinRequest(

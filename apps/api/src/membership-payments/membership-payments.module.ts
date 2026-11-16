@@ -1,5 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { DisputesModule } from '../disputes/disputes.module';
 import { LedgerModule } from '../ledger/ledger.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { SmsModule } from '../sms/sms.module';
@@ -14,6 +15,7 @@ import { MembershipPaymentsService } from './membership-payments.service';
     LedgerModule,
     PaymentsModule,
     SmsModule,
+    DisputesModule,
     BullModule.registerQueue({ name: MEMBERSHIP_MAINTENANCE_QUEUE }),
   ],
   controllers: [MembershipPaymentsController],

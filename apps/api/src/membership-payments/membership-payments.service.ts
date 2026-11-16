@@ -1,14 +1,10 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { MembershipPayment } from '@prisma/client';
-import {
-  DISPUTE_RESPONSE_WINDOW_HOURS,
-  computeMembershipPaymentAmount,
-} from '@pitzaa/shared';
+import { computeMembershipPaymentAmount } from '@pitzaa/shared';
 import { verifySecret } from '../common/crypto.util';
 import { LedgerService } from '../ledger/ledger.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -180,45 +176,6 @@ export class MembershipPaymentsService {
       });
 
       return paid;
-    });
-  }
-
-  /** Bouton « Je n'ai pas accès » : gèle le paiement et ouvre un litige. */
-  async reportNoAccess(
-    userId: string,
-    membershipPaymentId: string,
-    reason: string,
-  ) {
-    const membershipPayment = await this.prisma.membershipPayment.findUnique({
-      where: { id: membershipPaymentId },
-      include: { membership: { include: { group: true } } },
-    });
-    if (!membershipPayment || membershipPayment.membership.userId !== userId) {
-      throw new NotFoundException('Paiement introuvable.');
-    }
-    if (membershipPayment.status !== 'PAID') {
-      throw new ForbiddenException('Ce paiement ne peut plus être contesté.');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      await tx.membershipPayment.update({
-        where: { id: membershipPaymentId },
-        data: { status: 'DISPUTED' },
-      });
-
-      return tx.dispute.create({
-        data: {
-          raisedById: userId,
-          againstId: membershipPayment.membership.group.ownerId,
-          relatedEntityType: 'MEMBERSHIP_PAYMENT',
-          membershipPaymentId,
-          reason,
-          responseDeadlineAt: addHours(
-            new Date(),
-            DISPUTE_RESPONSE_WINDOW_HOURS,
-          ),
-        },
-      });
     });
   }
 }

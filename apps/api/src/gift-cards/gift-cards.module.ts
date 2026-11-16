@@ -1,6 +1,9 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { DisputesModule } from '../disputes/disputes.module';
 import { LedgerModule } from '../ledger/ledger.module';
+import { MessagingModule } from '../messaging/messaging.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { GiftCardBrandsController } from './gift-card-brands.controller';
 import { GiftCardBrandsService } from './gift-card-brands.service';
@@ -18,6 +21,9 @@ import { ManualGiftCardVerifier } from './verifiers/manual-gift-card-verifier';
   imports: [
     LedgerModule,
     PaymentsModule,
+    MessagingModule,
+    NotificationsModule,
+    DisputesModule,
     BullModule.registerQueue({ name: GIFT_CARD_MAINTENANCE_QUEUE }),
   ],
   controllers: [

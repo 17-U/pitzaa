@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../auth/types/authenticated-request.interface';
+import { DisputesService } from '../disputes/disputes.service';
 import { PayMembershipDto } from './dto/pay-membership.dto';
 import { ReportNoAccessDto } from './dto/report-no-access.dto';
 import { MembershipPaymentsService } from './membership-payments.service';
@@ -14,6 +15,7 @@ import { MembershipPaymentsService } from './membership-payments.service';
 export class MembershipPaymentsController {
   constructor(
     private readonly membershipPaymentsService: MembershipPaymentsService,
+    private readonly disputesService: DisputesService,
   ) {}
 
   @Post(':membershipId/payments')
@@ -38,7 +40,7 @@ export class MembershipPaymentsController {
     @Param('membershipPaymentId') membershipPaymentId: string,
     @Body() dto: ReportNoAccessDto,
   ) {
-    return this.membershipPaymentsService.reportNoAccess(
+    return this.disputesService.createForMembershipPayment(
       user.id,
       membershipPaymentId,
       dto.reason,

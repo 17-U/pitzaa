@@ -38,3 +38,8 @@ export const GIFT_CARD_ESCROW_RELEASE_HOURS = 72;
 export const DISPUTE_RESPONSE_WINDOW_HOURS = 48;
 export const DISPUTE_ARBITRATION_WINDOW_HOURS = 72;
 export const PAYMENT_REMINDER_DAYS_BEFORE_DUE = 3;
+
+/// Score de confiance : ancienneté, paiements à l'heure, litiges, avis (voir packages/shared/src/trust.ts).
+export const TRUST_SCORE_ON_TIME_COMPLETION_POINTS = 2;
+export const TRUST_SCORE_DISPUTE_LOST_PENALTY = 15;
+export const TRUST_SCORE_MAX_SENIORITY_BONUS = 24;
