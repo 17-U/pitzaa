@@ -6,10 +6,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { CatalogModule } from './catalog/catalog.module';
+import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { LedgerModule } from './ledger/ledger.module';
+import { MembershipPaymentsModule } from './membership-payments/membership-payments.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { VaultModule } from './vault/vault.module';
 import { WalletModule } from './wallet/wallet.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 
@@ -35,6 +39,10 @@ import { WithdrawalsModule } from './withdrawals/withdrawals.module';
     WalletModule,
     PaymentsModule,
     WithdrawalsModule,
+    CatalogModule,
+    GroupsModule,
+    MembershipPaymentsModule,
+    VaultModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

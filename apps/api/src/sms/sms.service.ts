@@ -13,4 +13,9 @@ export class SmsService {
         : `Pitzaa : votre code de vérification est ${code}. Il expire dans 5 minutes. Ne le partagez jamais.`;
     await this.provider.send(phone, message);
   }
+
+  /** Envoi générique, pour les notifications autres que l'OTP (rappels, alertes...). */
+  async send(phone: string, message: string): Promise<void> {
+    await this.provider.send(phone, message);
+  }
 }

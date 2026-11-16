@@ -437,7 +437,11 @@ model MembershipPayment {
   membershipId    String
   periodStart     DateTime
   periodEnd       DateTime
+  /// Montant total payé par le co-abonné (part du propriétaire + commission Pitzaa).
   amountXaf       Int
+  /// Part de amountXaf revenant à la plateforme, figée au moment du paiement
+  /// (évite de recalculer la commission à la libération si les tarifs changent).
+  commissionXaf   Int
   status          MembershipPaymentStatus @default(PENDING)
   paidAt          DateTime?
   /// Séquestre libéré 48h après paiement si aucun litige n'est ouvert.

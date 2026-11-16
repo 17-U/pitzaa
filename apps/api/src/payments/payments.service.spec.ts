@@ -18,8 +18,17 @@ function createFakePrisma() {
     update: jest.fn(),
     findUnique: jest.fn(),
   };
+  const groupMembership = {
+    update: jest.fn(),
+  };
 
-  const tx = { payment, withdrawal, membershipPayment, giftCardOrder };
+  const tx = {
+    payment,
+    withdrawal,
+    membershipPayment,
+    giftCardOrder,
+    groupMembership,
+  };
 
   const prisma = {
     ...tx,
@@ -28,7 +37,14 @@ function createFakePrisma() {
     ),
   };
 
-  return { prisma, payment, withdrawal, membershipPayment, giftCardOrder };
+  return {
+    prisma,
+    payment,
+    withdrawal,
+    membershipPayment,
+    giftCardOrder,
+    groupMembership,
+  };
 }
 
 function createFakeRouter(order: string[] = ['MOCK']) {
@@ -264,12 +280,18 @@ describe('PaymentsService', () => {
     });
 
     it('holds the collected amount in the escrow of the resolved beneficiary on success', async () => {
-      const { prisma, payment, membershipPayment } = createFakePrisma();
+      const { prisma, payment, membershipPayment, groupMembership } =
+        createFakePrisma();
       payment.findUniqueOrThrow.mockResolvedValue(
         basePayment({ status: 'PENDING', membershipPaymentId: 'mp_1' }),
       );
       membershipPayment.findUnique.mockResolvedValue({
         membership: { group: { ownerId: 'owner_1' } },
+      });
+      const periodEnd = new Date('2027-01-01T00:00:00.000Z');
+      membershipPayment.update.mockResolvedValue({
+        membershipId: 'ms_1',
+        periodEnd,
       });
       const getStatus = jest.fn().mockResolvedValue({
         providerReference: 'mock_ref_1',
@@ -312,6 +334,10 @@ describe('PaymentsService', () => {
           paidAt: expect.any(Date),
           escrowReleaseAt: expect.any(Date),
         },
+      });
+      expect(groupMembership.update).toHaveBeenCalledWith({
+        where: { id: 'ms_1' },
+        data: { nextPaymentDueAt: periodEnd },
       });
       expect(result.status).toBe('SUCCEEDED');
     });

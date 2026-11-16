@@ -212,7 +212,7 @@ export class PaymentsService {
       );
 
       if (payment.membershipPaymentId) {
-        await tx.membershipPayment.update({
+        const membershipPayment = await tx.membershipPayment.update({
           where: { id: payment.membershipPaymentId },
           data: {
             status: 'PAID',
@@ -222,6 +222,12 @@ export class PaymentsService {
               SUBSCRIPTION_ESCROW_RELEASE_HOURS,
             ),
           },
+        });
+        // La prochaine échéance démarre à la fin de la période qui vient d'être
+        // payée (couvre aussi les paiements de plusieurs mois d'avance).
+        await tx.groupMembership.update({
+          where: { id: membershipPayment.membershipId },
+          data: { nextPaymentDueAt: membershipPayment.periodEnd },
         });
       } else if (payment.giftCardOrderId) {
         // Le séquestre des cartes cadeaux démarre à la révélation du code (Phase 4),
