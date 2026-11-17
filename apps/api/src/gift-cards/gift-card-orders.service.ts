@@ -253,6 +253,7 @@ export class GiftCardOrdersService {
       where: { buyerId },
       include: {
         listing: { select: { ...PUBLIC_LISTING_SELECT, brand: true } },
+        conversation: true,
       },
       orderBy: { createdAt: 'desc' },
     });

@@ -17,6 +17,10 @@ const PROTECTED_PREFIXES = [
   "/gift-cards/mine",
   "/gift-cards/orders",
   "/gift-cards/admin",
+  "/messages",
+  "/disputes",
+  "/notifications",
+  "/reviews/new",
 ];
 const AUTH_PAGES = ["/login", "/login/verify"];
 

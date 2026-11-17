@@ -41,6 +41,7 @@ interface GroupDetail {
   autoAcceptJoinRequests: boolean;
   service: Service;
   memberships: Membership[];
+  conversation: { id: string } | null;
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -306,6 +307,15 @@ export default async function GroupDetailPage({
           <h2 className="text-lg font-medium text-black dark:text-zinc-50">Identifiants partagés</h2>
           <VaultRevealForm groupId={group.id} />
         </div>
+      )}
+
+      {canReveal && group.conversation && (
+        <Link
+          href={`/messages/${group.conversation.id}`}
+          className="inline-block text-sm font-medium text-black underline hover:no-underline dark:text-zinc-50"
+        >
+          Ouvrir la discussion du groupe
+        </Link>
       )}
 
       {isOwner && (

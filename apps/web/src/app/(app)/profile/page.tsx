@@ -1,6 +1,13 @@
 import { computeDisplayTrustScore } from "@pitzaa/shared";
+import { apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/current-user";
-import { formatKycStatus } from "@/lib/format";
+import { formatDate, formatKycStatus } from "@/lib/format";
+
+interface ReviewSummary {
+  reviewsCount: number;
+  averageRating: number | null;
+  reviews: { id: string; rating: number; comment: string | null; createdAt: string }[];
+}
 
 // Données propres à l'utilisateur connecté (cookies + fetch + searchParams) : rendu non statique.
 export const instant = false;
@@ -25,6 +32,7 @@ export default async function ProfilePage({
   if (!user) return null;
 
   const trustScore = computeDisplayTrustScore(user.trustScore, new Date(user.createdAt));
+  const reviewSummary = await apiFetch<ReviewSummary>(`/reviews/users/${user.id}`);
 
   return (
     <div className="max-w-xl space-y-8">
@@ -145,6 +153,26 @@ export default async function ProfilePage({
             Mettre à jour
           </button>
         </form>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-medium text-black dark:text-zinc-50">
+          Avis reçus ({reviewSummary.reviewsCount})
+          {reviewSummary.averageRating !== null && ` · ${reviewSummary.averageRating.toFixed(1)}/5`}
+        </h2>
+        {reviewSummary.reviews.length === 0 ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Aucun avis reçu pour le moment.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {reviewSummary.reviews.map((review) => (
+              <li key={review.id} className="px-4 py-3 text-sm">
+                <p className="font-medium text-black dark:text-zinc-50">{review.rating}/5</p>
+                {review.comment && <p className="text-zinc-600 dark:text-zinc-400">{review.comment}</p>}
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{formatDate(review.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

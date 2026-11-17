@@ -83,7 +83,7 @@ export class GroupsService {
   async getById(id: string) {
     const group = await this.prisma.subscriptionGroup.findUnique({
       where: { id },
-      include: { service: true, memberships: true },
+      include: { service: true, memberships: true, conversation: true },
     });
     if (!group) {
       throw new NotFoundException('Groupe introuvable.');

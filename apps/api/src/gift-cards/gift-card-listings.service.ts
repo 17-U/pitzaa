@@ -114,7 +114,11 @@ export class GiftCardListingsService {
   listMine(sellerId: string) {
     return this.prisma.giftCardListing.findMany({
       where: { sellerId },
-      select: { ...PUBLIC_LISTING_SELECT, brand: true, order: true },
+      select: {
+        ...PUBLIC_LISTING_SELECT,
+        brand: true,
+        order: { include: { conversation: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

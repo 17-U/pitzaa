@@ -14,7 +14,10 @@ interface Order {
   status: "PENDING_PAYMENT" | "PAYMENT_FAILED" | "PAID" | "CODE_REVEALED" | "ESCROW_RELEASED" | "DISPUTED" | "REFUNDED";
   createdAt: string;
   listing: { brand: { name: string } };
+  conversation: { id: string } | null;
 }
+
+const REVIEWABLE_STATUSES = new Set(["ESCROW_RELEASED", "REFUNDED"]);
 
 export default async function MyGiftCardOrdersPage({
   searchParams,
@@ -72,6 +75,22 @@ export default async function MyGiftCardOrdersPage({
                     className="text-xs font-medium text-red-600 underline hover:no-underline dark:text-red-400"
                   >
                     Signaler un problème
+                  </Link>
+                )}
+                {order.conversation && (
+                  <Link
+                    href={`/messages/${order.conversation.id}`}
+                    className="text-xs font-medium text-black underline hover:no-underline dark:text-zinc-50"
+                  >
+                    Discussion
+                  </Link>
+                )}
+                {REVIEWABLE_STATUSES.has(order.status) && (
+                  <Link
+                    href={`/reviews/new?giftCardOrderId=${order.id}`}
+                    className="text-xs font-medium text-black underline hover:no-underline dark:text-zinc-50"
+                  >
+                    Laisser un avis
                   </Link>
                 )}
               </div>

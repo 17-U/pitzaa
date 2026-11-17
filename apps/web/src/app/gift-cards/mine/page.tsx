@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authedFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/current-user";
@@ -5,6 +6,12 @@ import { formatDate, formatGiftCardListingStatus, formatXaf } from "@/lib/format
 
 // Lit les cookies de session (redirection si non connecté) : rendu non statique.
 export const instant = false;
+
+interface Order {
+  id: string;
+  status: "PENDING_PAYMENT" | "PAYMENT_FAILED" | "PAID" | "CODE_REVEALED" | "ESCROW_RELEASED" | "DISPUTED" | "REFUNDED";
+  conversation: { id: string } | null;
+}
 
 interface Listing {
   id: string;
@@ -14,9 +21,11 @@ interface Listing {
   rejectionReason: string | null;
   createdAt: string;
   brand: { name: string };
+  order: Order | null;
 }
 
 const CANCELLABLE_STATUSES = new Set(["PENDING_VERIFICATION", "LISTED"]);
+const REVIEWABLE_ORDER_STATUSES = new Set(["ESCROW_RELEASED", "REFUNDED"]);
 
 export default async function MyListingsPage({
   searchParams,
@@ -69,6 +78,22 @@ export default async function MyListingsPage({
                       Annuler
                     </button>
                   </form>
+                )}
+                {listing.order?.conversation && (
+                  <Link
+                    href={`/messages/${listing.order.conversation.id}`}
+                    className="text-xs font-medium text-black underline hover:no-underline dark:text-zinc-50"
+                  >
+                    Discussion
+                  </Link>
+                )}
+                {listing.order && REVIEWABLE_ORDER_STATUSES.has(listing.order.status) && (
+                  <Link
+                    href={`/reviews/new?giftCardOrderId=${listing.order.id}`}
+                    className="text-xs font-medium text-black underline hover:no-underline dark:text-zinc-50"
+                  >
+                    Laisser un avis
+                  </Link>
                 )}
               </div>
             </li>

@@ -9,6 +9,8 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "Tableau de bord" },
   { href: "/groups/mine", label: "Groupes" },
   { href: "/gift-cards/mine", label: "Cartes cadeaux" },
+  { href: "/disputes/mine", label: "Litiges" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/wallet", label: "Portefeuille" },
   { href: "/withdrawals", label: "Retraits" },
   { href: "/profile", label: "Profil" },

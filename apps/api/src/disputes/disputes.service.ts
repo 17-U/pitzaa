@@ -453,6 +453,7 @@ export class DisputesService {
   listMine(userId: string) {
     return this.prisma.dispute.findMany({
       where: { OR: [{ raisedById: userId }, { againstId: userId }] },
+      include: { conversation: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -460,6 +461,7 @@ export class DisputesService {
   listPendingForAdmin() {
     return this.prisma.dispute.findMany({
       where: { status: { in: ['OPEN', 'UNDER_ARBITRATION'] } },
+      include: { conversation: true },
       orderBy: { createdAt: 'asc' },
     });
   }

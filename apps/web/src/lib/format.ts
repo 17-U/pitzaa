@@ -72,3 +72,25 @@ const GIFT_CARD_ORDER_STATUS_LABELS: Record<string, string> = {
 export function formatGiftCardOrderStatus(status: string): string {
   return GIFT_CARD_ORDER_STATUS_LABELS[status] ?? status;
 }
+
+const DISPUTE_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Ouvert",
+  AWAITING_RESPONSE: "En attente de réponse",
+  UNDER_ARBITRATION: "En arbitrage",
+  RESOLVED_FOR_INITIATOR: "Tranché en faveur du plaignant",
+  RESOLVED_FOR_COUNTERPARTY: "Tranché en faveur de l'autre partie",
+  CANCELLED: "Annulé",
+};
+
+export function formatDisputeStatus(status: string): string {
+  return DISPUTE_STATUS_LABELS[status] ?? status;
+}
+
+const DISPUTE_RELATED_ENTITY_LABELS: Record<string, string> = {
+  MEMBERSHIP_PAYMENT: "Paiement d'abonnement partagé",
+  GIFT_CARD_ORDER: "Commande de carte cadeau",
+};
+
+export function formatDisputeRelatedEntity(relatedEntityType: string): string {
+  return DISPUTE_RELATED_ENTITY_LABELS[relatedEntityType] ?? relatedEntityType;
+}
