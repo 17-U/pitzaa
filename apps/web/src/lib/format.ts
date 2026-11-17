@@ -46,3 +46,29 @@ const KYC_STATUS_LABELS: Record<string, string> = {
 export function formatKycStatus(status: string): string {
   return KYC_STATUS_LABELS[status] ?? status;
 }
+
+const GIFT_CARD_LISTING_STATUS_LABELS: Record<string, string> = {
+  PENDING_VERIFICATION: "En attente de vérification",
+  LISTED: "En vente",
+  REJECTED: "Rejetée",
+  SOLD: "Vendue",
+  CANCELLED: "Annulée",
+};
+
+export function formatGiftCardListingStatus(status: string): string {
+  return GIFT_CARD_LISTING_STATUS_LABELS[status] ?? status;
+}
+
+const GIFT_CARD_ORDER_STATUS_LABELS: Record<string, string> = {
+  PENDING_PAYMENT: "Paiement en cours",
+  PAYMENT_FAILED: "Paiement échoué",
+  PAID: "Payée",
+  CODE_REVEALED: "Code révélé",
+  ESCROW_RELEASED: "Séquestre libéré",
+  DISPUTED: "En litige",
+  REFUNDED: "Remboursée",
+};
+
+export function formatGiftCardOrderStatus(status: string): string {
+  return GIFT_CARD_ORDER_STATUS_LABELS[status] ?? status;
+}

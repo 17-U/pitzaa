@@ -72,6 +72,12 @@ export default async function DashboardPage() {
         >
           Parcourir les groupes de partage
         </Link>
+        <Link
+          href="/gift-cards"
+          className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          Voir les cartes cadeaux en vente
+        </Link>
       </div>
 
       <div>
@@ -97,7 +103,7 @@ export default async function DashboardPage() {
       </div>
 
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Les cartes cadeaux et les litiges seront disponibles ici dans de prochaines étapes.
+        La messagerie et les avis seront disponibles ici dans de prochaines étapes.
       </p>
     </div>
   );

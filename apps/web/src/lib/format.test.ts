@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatGiftCardListingStatus,
+  formatGiftCardOrderStatus,
   formatKycStatus,
   formatLedgerEntryType,
   formatWithdrawalStatus,
@@ -35,5 +37,25 @@ describe("formatWithdrawalStatus", () => {
 describe("formatKycStatus", () => {
   it("maps a known status to a French label", () => {
     expect(formatKycStatus("APPROVED")).toBe("Validé");
+  });
+});
+
+describe("formatGiftCardListingStatus", () => {
+  it("maps a known status to a French label", () => {
+    expect(formatGiftCardListingStatus("LISTED")).toBe("En vente");
+  });
+
+  it("falls back to the raw value for an unknown status", () => {
+    expect(formatGiftCardListingStatus("SOMETHING_NEW")).toBe("SOMETHING_NEW");
+  });
+});
+
+describe("formatGiftCardOrderStatus", () => {
+  it("maps a known status to a French label", () => {
+    expect(formatGiftCardOrderStatus("CODE_REVEALED")).toBe("Code révélé");
+  });
+
+  it("falls back to the raw value for an unknown status", () => {
+    expect(formatGiftCardOrderStatus("SOMETHING_NEW")).toBe("SOMETHING_NEW");
   });
 });
