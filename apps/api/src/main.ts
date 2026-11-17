@@ -8,7 +8,15 @@ async function bootstrap() {
   // qui se calcule sur le corps brut de la requête, avant tout parsing JSON.
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
-  app.enableCors();
+  // CORS_ORIGIN (liste séparée par des virgules) restreint les origines autorisées en
+  // production (ex: l'URL Vercel du front). Non défini (dev/tests) : tout est autorisé,
+  // comme avant — aucun changement de comportement par défaut.
+  const corsOrigin = process.env.CORS_ORIGIN?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: corsOrigin && corsOrigin.length > 0 ? corsOrigin : true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
