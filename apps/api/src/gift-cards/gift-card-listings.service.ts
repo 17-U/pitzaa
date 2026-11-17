@@ -15,9 +15,19 @@ import {
 } from '../vault/vault-crypto.util';
 import { CreateListingDto } from './dto/create-listing.dto';
 import {
+  PUBLIC_LISTING_SELECT,
+  PUBLIC_SELLER_SELECT,
+} from './gift-card-listing-select.util';
+import {
   GIFT_CARD_VERIFIER,
   GiftCardVerifier,
 } from './verifiers/gift-card-verifier.interface';
+
+/** Vue publique d'une annonce : jamais codeEncrypted/codeIv/codeAuthTag (octets chiffrés inutiles côté client). */
+export type PublicGiftCardListing = Omit<
+  GiftCardListing,
+  'codeEncrypted' | 'codeIv' | 'codeAuthTag'
+>;
 
 @Injectable()
 export class GiftCardListingsService {
@@ -34,7 +44,7 @@ export class GiftCardListingsService {
   async create(
     sellerId: string,
     dto: CreateListingDto,
-  ): Promise<GiftCardListing> {
+  ): Promise<PublicGiftCardListing> {
     const brand = await this.prisma.giftCardBrand.findUnique({
       where: { id: dto.brandId },
     });
@@ -85,6 +95,7 @@ export class GiftCardListingsService {
         codeIv: iv,
         codeAuthTag: authTag,
       },
+      select: PUBLIC_LISTING_SELECT,
     });
   }
 
@@ -95,7 +106,7 @@ export class GiftCardListingsService {
         brandId,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
-      include: { brand: true },
+      select: { ...PUBLIC_LISTING_SELECT, brand: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -103,7 +114,7 @@ export class GiftCardListingsService {
   listMine(sellerId: string) {
     return this.prisma.giftCardListing.findMany({
       where: { sellerId },
-      include: { brand: true, order: true },
+      select: { ...PUBLIC_LISTING_SELECT, brand: true, order: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -111,7 +122,11 @@ export class GiftCardListingsService {
   listPendingForAdmin() {
     return this.prisma.giftCardListing.findMany({
       where: { status: 'PENDING_VERIFICATION' },
-      include: { brand: true, seller: true },
+      select: {
+        ...PUBLIC_LISTING_SELECT,
+        brand: true,
+        seller: { select: PUBLIC_SELLER_SELECT },
+      },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -157,7 +172,10 @@ export class GiftCardListingsService {
     return { code };
   }
 
-  async verify(adminId: string, listingId: string): Promise<GiftCardListing> {
+  async verify(
+    adminId: string,
+    listingId: string,
+  ): Promise<PublicGiftCardListing> {
     await this.getPendingListing(listingId);
     return this.prisma.giftCardListing.update({
       where: { id: listingId },
@@ -166,6 +184,7 @@ export class GiftCardListingsService {
         verifiedByAdminId: adminId,
         verifiedAt: new Date(),
       },
+      select: PUBLIC_LISTING_SELECT,
     });
   }
 
@@ -173,7 +192,7 @@ export class GiftCardListingsService {
     adminId: string,
     listingId: string,
     reason: string,
-  ): Promise<GiftCardListing> {
+  ): Promise<PublicGiftCardListing> {
     await this.getPendingListing(listingId);
     return this.prisma.giftCardListing.update({
       where: { id: listingId },
@@ -183,10 +202,14 @@ export class GiftCardListingsService {
         verifiedByAdminId: adminId,
         verifiedAt: new Date(),
       },
+      select: PUBLIC_LISTING_SELECT,
     });
   }
 
-  async cancel(sellerId: string, listingId: string): Promise<GiftCardListing> {
+  async cancel(
+    sellerId: string,
+    listingId: string,
+  ): Promise<PublicGiftCardListing> {
     const listing = await this.prisma.giftCardListing.findUnique({
       where: { id: listingId },
     });
@@ -202,6 +225,7 @@ export class GiftCardListingsService {
     return this.prisma.giftCardListing.update({
       where: { id: listingId },
       data: { status: 'CANCELLED' },
+      select: PUBLIC_LISTING_SELECT,
     });
   }
 }

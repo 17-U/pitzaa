@@ -376,4 +376,27 @@ describe('GiftCardOrdersService', () => {
       });
     });
   });
+
+  describe('listMine', () => {
+    it('never selects the encrypted code fields of the underlying listing', async () => {
+      const { prisma, giftCardOrder } = createFakePrisma();
+      giftCardOrder.findMany.mockResolvedValue([]);
+      const service = new GiftCardOrdersService(
+        prisma as never,
+        createFakeLedger() as never,
+        createFakePaymentsService() as never,
+        createFakeConfig(),
+        createFakeMessaging() as never,
+        createFakeNotifications() as never,
+      );
+
+      await service.listMine('buyer_1');
+
+      const listingSelect =
+        giftCardOrder.findMany.mock.calls[0][0].include.listing.select;
+      for (const field of ['codeEncrypted', 'codeIv', 'codeAuthTag']) {
+        expect(listingSelect).not.toHaveProperty(field);
+      }
+    });
+  });
 });

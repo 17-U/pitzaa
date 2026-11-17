@@ -198,4 +198,60 @@ describe('GiftCardListingsService', () => {
       );
     });
   });
+
+  describe('listPublic / listMine / listPendingForAdmin — never leak sensitive fields', () => {
+    const SENSITIVE_LISTING_FIELDS = ['codeEncrypted', 'codeIv', 'codeAuthTag'];
+
+    it('never selects the encrypted code fields when listing publicly', async () => {
+      const { prisma, giftCardListing } = createFakePrisma();
+      giftCardListing.findMany.mockResolvedValue([]);
+      const service = new GiftCardListingsService(
+        prisma as never,
+        createFakeConfig(),
+        createFakeVerifier() as never,
+      );
+
+      await service.listPublic();
+
+      const select = giftCardListing.findMany.mock.calls[0][0].select;
+      for (const field of SENSITIVE_LISTING_FIELDS) {
+        expect(select).not.toHaveProperty(field);
+      }
+    });
+
+    it('never selects the encrypted code fields when a seller lists their own listings', async () => {
+      const { prisma, giftCardListing } = createFakePrisma();
+      giftCardListing.findMany.mockResolvedValue([]);
+      const service = new GiftCardListingsService(
+        prisma as never,
+        createFakeConfig(),
+        createFakeVerifier() as never,
+      );
+
+      await service.listMine('seller_1');
+
+      const select = giftCardListing.findMany.mock.calls[0][0].select;
+      for (const field of SENSITIVE_LISTING_FIELDS) {
+        expect(select).not.toHaveProperty(field);
+      }
+    });
+
+    it('never selects the encrypted code fields nor the seller pinHash for admin review', async () => {
+      const { prisma, giftCardListing } = createFakePrisma();
+      giftCardListing.findMany.mockResolvedValue([]);
+      const service = new GiftCardListingsService(
+        prisma as never,
+        createFakeConfig(),
+        createFakeVerifier() as never,
+      );
+
+      await service.listPendingForAdmin();
+
+      const select = giftCardListing.findMany.mock.calls[0][0].select;
+      for (const field of SENSITIVE_LISTING_FIELDS) {
+        expect(select).not.toHaveProperty(field);
+      }
+      expect(select.seller.select).not.toHaveProperty('pinHash');
+    });
+  });
 });

@@ -18,6 +18,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { decryptVaultPayload } from '../vault/vault-crypto.util';
 import { BuyListingDto } from './dto/buy-listing.dto';
+import { PUBLIC_LISTING_SELECT } from './gift-card-listing-select.util';
 
 function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
@@ -250,7 +251,9 @@ export class GiftCardOrdersService {
   listMine(buyerId: string) {
     return this.prisma.giftCardOrder.findMany({
       where: { buyerId },
-      include: { listing: { include: { brand: true } } },
+      include: {
+        listing: { select: { ...PUBLIC_LISTING_SELECT, brand: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
