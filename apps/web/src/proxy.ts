@@ -4,7 +4,9 @@ import { isJwtExpiringSoon } from "@/lib/jwt";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/wallet", "/withdrawals", "/profile"];
+// /groups et /groups/:id restent publics (parcours sans compte) ; seules les pages
+// qui supposent un compte connecté (créer, mes groupes) sont protégées ici.
+const PROTECTED_PREFIXES = ["/dashboard", "/wallet", "/withdrawals", "/profile", "/groups/create", "/groups/mine"];
 const AUTH_PAGES = ["/login", "/login/verify"];
 
 const ACCESS_TOKEN_MAX_AGE_SECONDS = 60 * 15;

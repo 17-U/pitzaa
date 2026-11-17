@@ -53,7 +53,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Link
           href="/withdrawals"
           className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
@@ -65,6 +65,12 @@ export default async function DashboardPage() {
           className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
         >
           Voir l&apos;historique complet
+        </Link>
+        <Link
+          href="/groups"
+          className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          Parcourir les groupes de partage
         </Link>
       </div>
 
@@ -91,8 +97,7 @@ export default async function DashboardPage() {
       </div>
 
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Le partage d&apos;abonnements, les cartes cadeaux et les litiges seront disponibles ici dans de
-        prochaines étapes.
+        Les cartes cadeaux et les litiges seront disponibles ici dans de prochaines étapes.
       </p>
     </div>
   );
